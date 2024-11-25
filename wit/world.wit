@@ -1,0 +1,5 @@
+package krinkinmu:http;
+
+world target {
+  include wasi:http/proxy@0.2.2;
+}

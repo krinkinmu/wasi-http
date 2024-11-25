@@ -1,0 +1,4 @@
+[http]
+url = "https://github.com/WebAssembly/wasi-http/archive/main.tar.gz"
+sha256 = "8e809edc1259919fec30cb09006d12a87e75e9391764ad6a3242813427be056f"
+sha512 = "35e88e9af80e9c9b7aab2ce8f7166b0f3e51117cdb83600aec9e8f018f3db136e2c647977c822d9ce03a7ab69d1ae32cf363723686c58caf40f3359a014819ef"
