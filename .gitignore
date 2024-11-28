@@ -3,3 +3,6 @@
 *.lock
 wit/deps
 target
+bazel-bin
+bazel-out
+bazel-testlogs

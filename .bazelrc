@@ -1,0 +1,1 @@
+build --platforms=//bazel:wasip1

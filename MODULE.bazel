@@ -1,0 +1,9 @@
+module(name = "wasi-http-proxy-wasm", version = "0.0.1")
+
+# We need this dependency to import "wasm32 CPU" type and
+# "wasi OS" as CPU and OS for the build targets.
+bazel_dep(name = "platforms", version = "0.0.10")
+
+# Register build toolchain configuration that will produce proper WebAssembly
+# binaries.
+register_toolchains("//bazel:wasm32-wasi-toolchain")
