@@ -6,3 +6,4 @@ target
 bazel-bin
 bazel-out
 bazel-testlogs
+bazel-wasi-http
