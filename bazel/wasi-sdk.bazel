@@ -1,0 +1,29 @@
+filegroup(
+    name = "clang",
+    srcs = [":bin/clang-18"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "ar",
+    srcs = [":bin/llvm-ar"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "bin",
+    srcs = glob(["bin/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "sysroot",
+    srcs = glob(["share/wasi-sysroot/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "headers",
+    srcs = glob(["lib/clang/18/include/**"]),
+    visibility = ["//visibility:public"],
+)

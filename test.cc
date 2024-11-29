@@ -1,1 +1,7 @@
-extern "C" int foo() { return 42; }
+#include <iostream>
+
+int main() {
+    std::cout << "Hello, World!\n";
+    return 0;
+}
+

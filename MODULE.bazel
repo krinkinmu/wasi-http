@@ -4,6 +4,20 @@ module(name = "wasi-http-proxy-wasm", version = "0.0.1")
 # "wasi OS" as CPU and OS for the build targets.
 bazel_dep(name = "platforms", version = "0.0.10")
 
+# http_archive is used to download external dependecies.
+# For example, we use it to download wasi-libc implementation.
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# wasi-sdk contains toolchain, required header files and libraries to build
+# wasm wasi modules.
+http_archive(
+    name = "wasi-sdk",
+    url = "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz",
+    sha256 = "c6c38aab56e5de88adf6c1ebc9c3ae8da72f88ec2b656fb024eda8d4167a0bc5",
+    strip_prefix = "wasi-sdk-24.0-x86_64-linux",
+    build_file = "//bazel:wasi-sdk.bazel",
+)
+
 # Register build toolchain configuration that will produce proper WebAssembly
 # binaries.
 register_toolchains("//bazel:wasm32-wasi-toolchain")

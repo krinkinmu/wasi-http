@@ -1,9 +1,10 @@
-load("@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl", "feature", "flag_set", "flag_group", "tool_path")
+load("@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl", "feature", "flag_set", "flag_group", "tool_path", "action_config")
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 
 COMPILE_ACTIONS = [
     ACTION_NAMES.cpp_compile,
     ACTION_NAMES.c_compile,
+    ACTION_NAMES.cpp_header_parsing,
 ]
 
 LINK_ACTIONS = [
@@ -12,60 +13,84 @@ LINK_ACTIONS = [
 
 COMPILE_AND_LINK_ACTIONS = COMPILE_ACTIONS + LINK_ACTIONS
 
-target_wasm32 = feature(
-    name = "target-wasm32",
-    enabled = True,
+# I didn't find a simple enough way to provide a path to a directory as
+# a target/label, so I am hardcoding the path to the directory with header
+# files explicitly here.
+wasm32_wasip1_headers = feature(
+    name = "wasm32-wasip1-headers",
+    enabled = False,
     flag_sets = [
         flag_set(
-            actions = COMPILE_AND_LINK_ACTIONS,
+            actions = COMPILE_ACTIONS,
             flag_groups = [
                 flag_group(
-                    flags = ["--target=wasm32"],
+                    flags = [
+                        "-isystem", "external/_main~_repo_rules~wasi-sdk/share/wasi-sysroot/include/wasm32-wasip1/c++/v1",
+                        "-isystem", "external/_main~_repo_rules~wasi-sdk/share/wasi-sysroot/include/wasm32-wasip1",
+                        "-isystem", "external/_main~_repo_rules~wasi-sdk/lib/clang/18/include",
+                    ],
                 ),
             ],
         )
     ],
 )
 
-nostdlib = feature(
-    name = "nostdlib",
+# Similarly to the header files above, I'm hardcoding the path to the
+# directory with libs as well.
+wasm32_wasip1_libs = feature(
+    name = "wasm32-wasip1-libs",
+    enabled = False,
+    flag_sets = [
+        flag_set(
+            actions = LINK_ACTIONS,
+            flag_groups = [
+                flag_group(
+                    flags = [
+                        "-L", "external/_main~_repo_rules~wasi-sdk/share/wasi-sysroot/lib/wasm32-wasip1",
+                    ],
+                ),
+            ],
+        )
+    ],
+)
+
+target_wasm32_wasip1 = feature(
+    name = "target-wasm32-wasip1",
     enabled = True,
+    # This feature automatically enables features that provide header and lib
+    # paths for --target=wasm32-wasip1.
+    implies = [
+        "wasm32-wasip1-headers",
+        "wasm32-wasip1-libs",
+    ],
+    # This feature is mutually exclusive with other targets.
+    provides = ["target"],
     flag_sets = [
         flag_set(
             actions = COMPILE_AND_LINK_ACTIONS,
             flag_groups = [
                 flag_group(
-                    flags = ["-nostdlib"],
+                    flags = [
+                        "-target", "wasm32-wasip1",
+                    ],
                 ),
             ],
-        ),
+        )
     ],
 )
 
-no_entry = feature(
-    name = "no-entry",
+default_libs = feature(
+    name = "default-libs",
     enabled = True,
     flag_sets = [
         flag_set(
             actions = LINK_ACTIONS,
             flag_groups = [
                 flag_group(
-                    flags = ["-Wl,--no-entry"],
-                ),
-            ],
-        ),
-    ],
-)
-
-export_all = feature(
-    name = "export-all",
-    enabled = True,
-    flag_sets = [
-        flag_set(
-            actions = LINK_ACTIONS,
-            flag_groups = [
-                flag_group(
-                    flags = ["-Wl,--export-all", "-Wl,--no-gc-sections"],
+                    flags = [
+                        "-l:libc++.a",
+                        "-l:libc++abi.a",
+                    ],
                 ),
             ],
         ),
@@ -73,6 +98,43 @@ export_all = feature(
 )
 
 def _toolchain_config_impl(ctx):
+    cc_compile_action = action_config(
+        action_name = ACTION_NAMES.cpp_compile,
+        tools = [
+            struct(
+                type_name = "tool",
+                tool = ctx.file.compiler,
+            ),
+        ],
+    )
+    c_compile_action = action_config(
+        action_name = ACTION_NAMES.c_compile,
+        tools = [
+            struct(
+                type_name = "tool",
+                tool = ctx.file.compiler,
+            ),
+        ],
+    )
+    cc_link_binary_action = action_config(
+        action_name = ACTION_NAMES.cpp_link_executable,
+        tools = [
+            struct(
+                type_name = "tool",
+                tool = ctx.file.compiler,
+            ),
+        ],
+    )
+    archive_action = action_config(
+        action_name = ACTION_NAMES.cpp_link_static_library,
+        tools = [
+            struct(
+                type_name = "tool",
+                tool = ctx.file.archiver,
+            ),
+        ]
+    )
+
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         toolchain_identifier = "wasm32-wasi",
@@ -80,48 +142,31 @@ def _toolchain_config_impl(ctx):
         target_cpu = "wasm32",
         target_libc = "wasi",
         compiler = "clang",
-        # This seem to be the only thing that matters in the rule, all the
-        # values above, I think, ignored in the ne enough versions of Bazel. 
-        tool_paths = [
-            tool_path(
-                name = "gcc",
-                path = "/usr/bin/clang",
-            ),
-            tool_path(
-                name = "ar",
-                path = "/usr/bin/llvm-ar",
-            ),
-            tool_path(
-                name = "ld",
-                path = "/bin/false",
-            ),
-            tool_path(
-                name = "cpp",
-                path = "/bin/false",
-            ),
-            tool_path(
-                name = "nm",
-                path = "/bin/false",
-            ),
-            tool_path(
-                name = "objdump",
-                path = "/bin/false",
-            ),
-            tool_path(
-                name = "strip",
-                path = "/bin/false",
-            ),
+        action_configs = [
+            c_compile_action,
+            cc_compile_action,
+            archive_action,
+            cc_link_binary_action,
         ],
         features = [
-            target_wasm32,
-            export_all,
-            no_entry,
-            nostdlib,
+            wasm32_wasip1_headers,
+            wasm32_wasip1_libs,
+            target_wasm32_wasip1,
+            default_libs,
         ],
     )
 
 wasm32_wasi_toolchain_config = rule(
     implementation = _toolchain_config_impl,
-    attrs = {},
+    attrs = {
+        "compiler": attr.label(
+            allow_single_file = True,
+            mandatory = True,
+        ),
+        "archiver": attr.label(
+            allow_single_file = True,
+            mandatory = True,
+        ),
+    },
     provides = [CcToolchainConfigInfo],
 )

@@ -4,6 +4,68 @@ load(":toolchain.bzl", "wasm32_wasi_toolchain_config");
 # explanation of steps involved in defining a new toolchain.
 filegroup(name = "empty")
 
+# These are a signle file filegroups that just point to the clang binary
+# and ar tool.
+# We need them to pass to the toolchain configuration as a label and
+# avoid hardcoding the paths to the tools.
+filegroup(
+    name = "clang",
+    srcs = ["@wasi-sdk//:clang"]
+)
+
+filegroup(
+    name = "ar",
+    srcs = ["@wasi-sdk//:ar"]
+)
+
+filegroup(
+    name = "clang-headers",
+    srcs = ["@wasi-sdk//:headers"],
+)
+
+filegroup(
+    name = "bin",
+    srcs = ["@wasi-sdk//:bin"],
+)
+
+filegroup(
+    name = "sysroot",
+    srcs = ["@wasi-sdk//:sysroot"],
+)
+
+filegroup(
+    name = "compiler-files",
+    srcs = [
+        ":sysroot",
+        ":clang-headers",
+        ":bin",
+    ],
+)
+
+filegroup(
+    name = "linker-files",
+    srcs = [
+        ":sysroot",
+        ":bin",
+    ],
+)
+
+filegroup(
+    name = "archiver-files",
+    srcs = [
+        ":bin",
+    ],
+)
+
+filegroup(
+    name = "all-files",
+    srcs = [
+        ":compiler-files",
+        ":linker-files",
+        ":archiver-files",
+    ],
+)
+
 platform(
     name = "wasip1",
     constraint_values = [
@@ -12,15 +74,20 @@ platform(
     ],
 )
 
-wasm32_wasi_toolchain_config(name = "wasm32-wasi-cc-toolchain-config")
+wasm32_wasi_toolchain_config(
+    name = "wasm32-wasi-cc-toolchain-config",
+    compiler = ":clang",
+    archiver = ":ar",
+)
 
 cc_toolchain(
     name = "wasm32-wasi-cc-toolchain",
     toolchain_config = ":wasm32-wasi-cc-toolchain-config",
-    all_files = ":empty",
-    compiler_files = ":empty",
+    all_files = ":all-files",
+    ar_files = ":ar-files",
+    compiler_files = ":compiler-files",
     dwp_files = ":empty",
-    linker_files = ":empty",
+    linker_files = ":linker-files",
     objcopy_files = ":empty",
     strip_files = ":empty",
     supports_param_files = False,
