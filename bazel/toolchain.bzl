@@ -135,6 +135,11 @@ archiver_flags = feature(
     ],
 )
 
+supports_start_end_lib = feature(
+    name = "supports_start_end_lib",
+    enabled = True,
+)
+
 def _toolchain_config_impl(ctx):
     cc_compile_action = action_config(
         action_name = ACTION_NAMES.cpp_compile,
@@ -192,6 +197,7 @@ def _toolchain_config_impl(ctx):
             target_wasm32_wasip1,
             default_libs,
             archiver_flags,
+            supports_start_end_lib,
         ],
     )
 
