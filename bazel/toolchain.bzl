@@ -140,6 +140,21 @@ supports_start_end_lib = feature(
     enabled = True,
 )
 
+no_exceptions = feature(
+    name = "no-exceptions",
+    enabled = True,
+    flag_sets = [
+        flag_set(
+            actions = COMPILE_ACTIONS,
+            flag_groups = [
+                flag_group(
+                    flags = ["-fno-exceptions"],
+                ),
+            ],
+        ),
+    ],
+)
+
 def _toolchain_config_impl(ctx):
     cc_compile_action = action_config(
         action_name = ACTION_NAMES.cpp_compile,
@@ -198,6 +213,7 @@ def _toolchain_config_impl(ctx):
             default_libs,
             archiver_flags,
             supports_start_end_lib,
+            no_exceptions,
         ],
     )
 
