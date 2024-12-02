@@ -84,7 +84,7 @@ cc_toolchain(
     name = "wasm32-wasi-cc-toolchain",
     toolchain_config = ":wasm32-wasi-cc-toolchain-config",
     all_files = ":all-files",
-    ar_files = ":ar-files",
+    ar_files = ":archiver-files",
     compiler_files = ":compiler-files",
     dwp_files = ":empty",
     linker_files = ":linker-files",

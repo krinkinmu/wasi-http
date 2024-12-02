@@ -1,4 +1,4 @@
-load("@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl", "feature", "flag_set", "flag_group", "tool_path", "action_config")
+load("@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl", "feature", "flag_set", "flag_group", "variable_with_value", "action_config")
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 
 COMPILE_ACTIONS = [
@@ -97,6 +97,44 @@ default_libs = feature(
     ],
 )
 
+archiver_flags = feature(
+    name = "archiver_flags",
+    enabled = True,
+    flag_sets = [
+        flag_set(
+            actions = [ACTION_NAMES.cpp_link_static_library],
+            flag_groups = [
+                flag_group(flags = ["rcsD"]),
+                flag_group(
+                    flags = ["%{output_execpath}"],
+                    expand_if_available = "output_execpath",
+                ),
+                flag_group(
+                    iterate_over = "libraries_to_link",
+                    expand_if_available = "libraries_to_link",
+                    flag_groups = [
+                        flag_group(
+                            flags = ["%{libraries_to_link.name}"],
+                            expand_if_equal = variable_with_value(
+                                name = "libraries_to_link.type",
+                                value = "object_file",
+                            ),
+                        ),
+                        flag_group(
+                            flags = ["%{libraries_to_link.object_files}"],
+                            iterate_over = "libraries_to_link.object_files",
+                            expand_if_equal = variable_with_value(
+                                name = "libraries_to_link.type",
+                                value = "object_file_group",
+                            ),
+                        ),
+                    ],
+                ),
+            ],
+        ),
+    ],
+)
+
 def _toolchain_config_impl(ctx):
     cc_compile_action = action_config(
         action_name = ACTION_NAMES.cpp_compile,
@@ -153,6 +191,7 @@ def _toolchain_config_impl(ctx):
             wasm32_wasip1_libs,
             target_wasm32_wasip1,
             default_libs,
+            archiver_flags,
         ],
     )
 
