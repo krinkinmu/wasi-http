@@ -1,0 +1,15 @@
+load("@//bazel:wit.bzl", "wit_package")
+
+wit_package(
+    name = "wasi-http",
+    visibility = ["//visibility:public"],
+    srcs = glob(["wit/*.wit"]),
+    deps = [
+        "@wasi-cli",
+        "@wasi-clocks",
+        "@wasi-filesystem",
+        "@wasi-io",
+        "@wasi-random",
+        "@wasi-sockets",
+    ],
+)

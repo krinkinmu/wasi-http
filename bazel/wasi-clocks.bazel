@@ -1,0 +1,10 @@
+load("@//bazel:wit.bzl", "wit_package")
+
+wit_package(
+    name = "wasi-clocks",
+    visibility = ["//visibility:public"],
+    srcs = glob(["wit/*.wit"]),
+    deps = [
+        "@wasi-io",
+    ],
+)

@@ -1,0 +1,7 @@
+load("@//bazel:wit.bzl", "wit_package")
+
+wit_package(
+    name = "wasi-io",
+    visibility = ["//visibility:public"],
+    srcs = glob(["wit/*.wit"]),
+)

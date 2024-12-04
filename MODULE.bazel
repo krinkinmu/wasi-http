@@ -18,6 +18,62 @@ http_archive(
     build_file = "//bazel:wasi-sdk.bazel",
 )
 
+http_archive(
+    name = "wasi-http",
+    url = "https://github.com/WebAssembly/wasi-http/archive/refs/tags/v0.2.2.tar.gz",
+    sha256 = "03b471b25233529bacdb28554f0ef13e5307b92540342faa87094d486f75e30b",
+    strip_prefix = "wasi-http-0.2.2",
+    build_file = "//bazel:wasi-http.bazel",
+)
+
+http_archive(
+    name = "wasi-cli",
+    url = "https://github.com/WebAssembly/wasi-cli/archive/refs/tags/v0.2.2.tar.gz",
+    sha256 = "c9d1d0c1a5d67f344ab067ccaac8559d1aa62afc3a27d9801b63003901453d41",
+    strip_prefix = "wasi-cli-0.2.2",
+    build_file = "//bazel:wasi-cli.bazel",
+)
+
+http_archive(
+    name = "wasi-clocks",
+    url = "https://github.com/WebAssembly/wasi-clocks/archive/refs/tags/v0.2.2.tar.gz",
+    sha256 = "b38f1eddd6a0c88298f850ba0a796a7b9fd06c1c538bd09cd17e7e7b132d9a9e",
+    strip_prefix = "wasi-clocks-0.2.2",
+    build_file = "//bazel:wasi-clocks.bazel",
+)
+
+http_archive(
+    name = "wasi-filesystem",
+    url = "https://github.com/WebAssembly/wasi-filesystem/archive/refs/tags/v0.2.2.tar.gz",
+    sha256 = "13f204f419e23727b22c7ac8f6baa729cb13f3b3ec5d067ecdf049823d1a2819",
+    strip_prefix = "wasi-filesystem-0.2.2",
+    build_file = "//bazel:wasi-filesystem.bazel",
+)
+
+http_archive(
+    name = "wasi-io",
+    url = "https://github.com/WebAssembly/wasi-io/archive/refs/tags/v0.2.2.tar.gz",
+    sha256 = "a8e8c2afbe845255ee0dac24f76e10c56d355cf20f8ae3519d92df3770dc6bc8",
+    strip_prefix = "wasi-io-0.2.2",
+    build_file = "//bazel:wasi-io.bazel",
+)
+
+http_archive(
+    name = "wasi-random",
+    url = "https://github.com/WebAssembly/wasi-random/archive/refs/tags/v0.2.2.tar.gz",
+    sha256 = "0e2d4bf46d289c66335b40219b435eac175f799f4f7f232915e59277ad966f37",
+    strip_prefix = "wasi-random-0.2.2",
+    build_file = "//bazel:wasi-random.bazel",
+)
+
+http_archive(
+    name = "wasi-sockets",
+    url = "https://github.com/WebAssembly/wasi-sockets/archive/refs/tags/v0.2.2.tar.gz",
+    sha256 = "8af9960414304a9452bab7db5d316c27e05fd17cacdabef469131f3d80ad62cc",
+    strip_prefix = "wasi-sockets-0.2.2",
+    build_file = "//bazel:wasi-sockets.bazel",
+)
+
 # Register build toolchain configuration that will produce proper WebAssembly
 # binaries.
 register_toolchains("//bazel:wasm32-wasi-toolchain")

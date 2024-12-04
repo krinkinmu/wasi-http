@@ -1,4 +1,4 @@
-load(":toolchain.bzl", "wasm32_wasi_toolchain_config");
+load(":toolchain.bzl", "wasm32_wasi_toolchain_config")
 
 # Refer to https://bazel.build/tutorials/ccp-toolchain-config for the
 # explanation of steps involved in defining a new toolchain.
