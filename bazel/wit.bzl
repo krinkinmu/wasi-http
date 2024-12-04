@@ -1,3 +1,4 @@
+load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@rules_rust//rust:defs.bzl", "rust_library")
 
 # We basically want to do a Bazel version of wit-deps tool that can put all
@@ -131,3 +132,140 @@ wit_package = rule(
     provides = [WitPackageInfo],
 )
 
+
+def _to_rust_ident(world_name):
+    # WIT identifiers must use so called "kebab-case" format - words seperated
+    # by - characters. WIT identifiers can also have % at the beginning if it
+    # conflicts with WIT keyword. Neither - nor % are allowed in Rust
+    # identifiers.
+    keywords = {
+        "as": "as_",
+        "break": "break_",
+        "const": "const_",
+        "continue": "continue_",
+        "crate": "crate_",
+        "else": "else_",
+        "enum": "enum_",
+        "extern": "extern_",
+        "false": "false_",
+        "fn": "fn_",
+        "for": "for_",
+        "if": "if_",
+        "impl": "impl_",
+        "in": "in_",
+        "let": "let_",
+        "loop": "loop_",
+        "match": "match_",
+        "mod": "mod_",
+        "move": "move_",
+        "mut": "mut_",
+        "pub": "pub_",
+        "ref": "ref_",
+        "return": "return_",
+        "self": "self_",
+        "static": "static_",
+        "struct": "struct_",
+        "super": "super_",
+        "trait": "trait_",
+        "true": "true_",
+        "type": "type_",
+        "unsafe": "unsafe_",
+        "use": "use_",
+        "where": "where_",
+        "while": "while_",
+        "async": "async_",
+        "await": "await_",
+        "dyn": "dyn_",
+        "abstract": "abstract_",
+        "become": "become_",
+        "box": "box_",
+        "do": "do_",
+        "final": "final_",
+        "macro": "macro_",
+        "override": "override_",
+        "priv": "priv_",
+        "typeof": "typeof_",
+        "unsized": "unsized_",
+        "virtual": "virtual_",
+        "yield": "yield_",
+        "try": "try_",
+    }
+    name = world_name.replace('%', '').replace('-', '_')
+    return keywords.get(name) or name
+
+def _rust_bindings_impl(ctx):
+    # When it comes to Rust we basically want to produce a Rust lib crate.
+    # In simple cases it could be just a single file and it looks like
+    # in our case it should be good enough.
+    #
+    # As far as I understand, wit-bindgen basically generates a single
+    # file for each WIT world, so calling wit-bindgen should only produce
+    # a single Rust file.
+    directory = paths.join(ctx.label.name, "rust_bindings")
+    path = paths.join(directory, _to_rust_ident(ctx.attr.world) + ".rs") 
+    bindings = ctx.actions.declare_file(path)
+    ctx.actions.run(
+        inputs = [ctx.file.wit],
+        outputs = [bindings],
+        executable = ctx.executable.bindgen,
+        arguments = [
+            "rust",
+            ctx.file.wit.path,
+            "--world",
+            ctx.attr.world,
+            "--out-dir",
+            bindings.dirname,
+            "--default-bindings-module",
+            "bindings",
+            # We want to be able to use the generate export macro in other
+            # crates, so we have to make it public. I'm not entirely sure
+            # why it's not the default behaviour to begin with.
+            "--pub-export-macro",
+            # Generate all the interfaces, since we don't really know in this
+            # rule (and we probably shouldn't care), which interfaces are
+            # going to be used by the final module.
+            "--generate-all",
+        ],
+    )
+    return [DefaultInfo(files = depset([bindings]))]
+    
+
+rust_bindings = rule(
+    implementation = _rust_bindings_impl,
+    doc = "Calls wit-bindgen to generate Rust bindings for the WIT package.",
+    attrs = {
+        "wit": attr.label(
+            doc = "WIT package to produce bindings for.",
+            allow_single_file = True,
+            mandatory = True,
+            providers = [WitPackageInfo],
+        ),
+        "world": attr.string(
+            doc = "World to generate Rust bindings for",
+            mandatory = True,
+        ),
+        "lib_template": attr.label(
+            default = ":lib-rs-template",
+            allow_single_file = True,
+        ),
+        "bindgen": attr.label(
+            default = "@wit-bindgen-cli//:wit-bindgen-cli",
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+)
+
+def rust_wit_library(name, wit, world, crate_name = None, **kwargs):
+    rust_bindings(
+        name = name + "_bindings",
+        wit = wit,
+        world = world,
+        **kwargs,
+    )
+    rust_library(
+        name = name,
+        srcs = [":" + name + "_bindings"],
+        deps = ["@crates//:wit-bindgen"],
+        crate_name = crate_name,
+    )

@@ -1,0 +1,5 @@
+filegroup(
+    name = "wit-bindgen-cli",
+    visibility = ["//visibility:public"],
+    srcs = ["wit-bindgen"],
+)
