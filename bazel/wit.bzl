@@ -244,10 +244,6 @@ rust_bindings = rule(
             doc = "World to generate Rust bindings for",
             mandatory = True,
         ),
-        "lib_template": attr.label(
-            default = ":lib-rs-template",
-            allow_single_file = True,
-        ),
         "bindgen": attr.label(
             default = "@wit-bindgen-cli//:wit-bindgen-cli",
             executable = True,
