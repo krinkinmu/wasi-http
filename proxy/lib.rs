@@ -1,10 +1,7 @@
 extern crate bindings;
 
-use bindings::wasi::http::outgoing_handler::handle as send_request;
 use bindings::exports::wasi::http::incoming_handler::Guest;
-use bindings::wasi::io::streams::{
-    StreamError,
-};
+use bindings::wasi::http::outgoing_handler::handle as send_request;
 use bindings::wasi::http::types::{
     IncomingRequest,
     OutgoingRequest,
@@ -15,8 +12,7 @@ use bindings::wasi::http::types::{
     IncomingBody,
     OutgoingBody,
 };
-
-use std::string::String;
+use bindings::wasi::io::streams::StreamError;
 
 struct Proxy;
 

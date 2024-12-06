@@ -67,7 +67,7 @@ filegroup(
 )
 
 platform(
-    name = "wasip1",
+    name = "wasi",
     constraint_values = [
         "@platforms//cpu:wasm32",
         "@platforms//os:wasi",

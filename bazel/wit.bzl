@@ -265,3 +265,78 @@ def rust_wit_library(name, wit, world, crate_name = None, **kwargs):
         deps = ["@crates//:wit-bindgen"],
         crate_name = crate_name,
     )
+
+def _wasm_component_impl(ctx):
+    # wit-bindgen for C++ alongside the bindings also generates an object
+    # file with metadata, I think that's why for C+++
+    # https://component-model.bytecodealliance.org/language-support/c.html
+    # suggests to directly use wasm-tools compnent new. However for
+    # rust it's apparently not the case, or at least not the case with the
+    # flags I give wit-bindgen. So we need an intermediate step here to
+    # embed wit into the Wasm core module first before creating a component.
+
+    embedded = ctx.actions.declare_file(ctx.label.name + ".embedded.wasm")
+    ctx.actions.run(
+        inputs = [ctx.file.module, ctx.file.wit],
+        outputs = [embedded],
+        executable = ctx.executable.wasm_tools,
+        arguments = [
+            "component",
+            "embed",
+            "--world",
+            ctx.attr.world,
+            "--output",
+            embedded.path,
+            ctx.file.wit.path,
+            ctx.file.module.path,
+        ],
+    )
+
+    component = ctx.actions.declare_file(ctx.label.name)
+    ctx.actions.run(
+        inputs = [embedded, ctx.file.adapter],
+        outputs = [component],
+        executable = ctx.executable.wasm_tools,
+        arguments = [
+            "component",
+            "new",
+            "--adapt",
+            ctx.file.adapter.path,
+            "--output",
+            component.path,
+            embedded.path,
+        ],
+    )
+    return [DefaultInfo(files = depset([component]))]
+
+wasm_component = rule(
+    implementation = _wasm_component_impl,
+    doc = "Creates a Wasm component from a wit-bindgen Wasm core module.",
+    attrs = {
+        "module": attr.label(
+            doc = "Core Wasm module that you want to build a component from.",
+            allow_single_file = True,
+        ),
+        "wit": attr.label(
+            doc = "WIT package with the target world.",
+            mandatory = True,
+            # It's confusing, but by single file here we mean file or directory
+            allow_single_file = True,
+            providers = [WitPackageInfo],
+        ),
+        "world": attr.string(
+            doc = "Name of the world to use from the WIT package",
+            mandatory = True,
+        ),
+        "adapter": attr.label(
+            doc = "The wasi preview1 adapter to use for this component.",
+            allow_single_file = True,
+            mandatory = True,
+        ),
+        "wasm_tools" : attr.label(
+            default = "@crates//:wasm-tools__wasm-tools",
+            executable = True,
+            cfg = "exec",
+        ),
+    }
+)
