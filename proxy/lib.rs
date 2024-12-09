@@ -1,5 +1,9 @@
 extern crate bindings;
 
+mod host;
+mod guest;
+mod types;
+
 use bindings::exports::wasi::http::incoming_handler::Guest;
 use bindings::wasi::http::outgoing_handler::handle as send_request;
 use bindings::wasi::http::types::{
@@ -31,7 +35,7 @@ fn request_target(request: &IncomingRequest) -> String {
         .expect("'destination' header must be a valid HTTP authority")
 }
 
-fn stream_data(source: &InputStream, destination: &OutputStream) {
+fn stream_data(request: bool, end_of_stream: bool, source: &InputStream, destination: &OutputStream) {
     // TODO: It's a bit too simplistic at the moment in the sense, that real
     // proxies should be able to do some non-trivial buffering. For example,
     // in Envoy it's possible to write a plugin that will look at the body and
@@ -66,6 +70,17 @@ fn stream_data(source: &InputStream, destination: &OutputStream) {
         match source.read(buffer) {
             Ok(data) => {
                 // TODO: modify data here
+                if request {
+                    unsafe {
+                        guest::proxy_on_request_body(
+                            2, data.len() as u32, end_of_stream as u32);
+                    }
+                } else {
+                    unsafe {
+                        guest::proxy_on_response_body(
+                            2, data.len() as u32, end_of_stream as u32);
+                    }
+                }
                 destination.write(&data[..]).unwrap();
             },
             Err(StreamError::Closed) => {
@@ -81,16 +96,45 @@ fn stream_data(source: &InputStream, destination: &OutputStream) {
 }
 
 impl Guest for Proxy {
+    // TODO:
+    // -- I need to figure out how exactly does Envoy propagate end_of_stream
+    //    flag across different calls and how accurate that information is
+    // -- Support asynchronous APIs and pausing processing from the proxy-wasm
+    //    plugin (e.g., when they return StopIteration)
+    // -- [Maybe] have an even loop architecture for easier async logic
+    // -- [Maybe] have buffering
     fn handle(request: IncomingRequest, out: ResponseOutparam) {
+        // I think, and I need to double check that, proxy-wasm has basically
+        // 2 different types of contexts:
+        //
+        //   - Root context, which I think, is created for each worker thread
+        //   - HTTP request/response context which is a chile of a root context
+        //     and is created for each request/response
+        //
+        // I'm ignoring for now proxy-wasm TCP plugins and contexts associated
+        // with TCP connections.
+        //
+        // I'm trying to simulate a similar setup here, so I create a root
+        // context first and then a child request/response context.
+        unsafe {
+            guest::proxy_on_context_create(1, 0);
+            guest::proxy_on_context_create(2, 1);
+        }
+
         let authority = request_target(&request);
         let headers = request.headers().clone();
 
-        // TODO: modify headers here
         let req = OutgoingRequest::new(headers);
         req.set_method(&request.method()).unwrap();
         req.set_path_with_query(request.path_with_query().as_deref()).unwrap();
         req.set_scheme(request.scheme().as_ref()).unwrap();
         req.set_authority(Some(authority.as_str())).unwrap();
+
+        // TODO: modify headers here
+        unsafe {
+            guest::proxy_on_request_headers(
+                2, req.headers().entries().len() as u32, /*end_of_stream=*/0);
+        }
 
         let received_body = request.consume().unwrap();
         let sent_body = req.body().unwrap();
@@ -105,7 +149,9 @@ impl Guest for Proxy {
         {
             let source = received_body.stream().unwrap();
             let destination = sent_body.write().unwrap();
-            stream_data(&source, &destination);
+            stream_data(
+                /*request=*/true, /*end_of_stream*/false,
+                &source, &destination);
         }
 
         {
@@ -115,6 +161,10 @@ impl Guest for Proxy {
             if let Some(trailers) = future.get().unwrap().unwrap().unwrap() {
                 let trailers = trailers.clone();
                 // TODO: modify trailers here
+                unsafe {
+                    guest::proxy_on_request_trailers(
+                        2, trailers.entries().len() as u32);
+                }
                 OutgoingBody::finish(sent_body, Some(trailers)).unwrap();
             } else {
                 OutgoingBody::finish(sent_body, None).unwrap();
@@ -125,9 +175,15 @@ impl Guest for Proxy {
         let res = future.get().unwrap().unwrap().unwrap();
 
         let headers = res.headers().clone();
-        // TODO: modify response headers here
         let response = OutgoingResponse::new(headers);
         response.set_status_code(res.status()).unwrap();
+
+        unsafe {
+            guest::proxy_on_response_headers(
+                2, response.headers().entries().len() as u32,
+                /*end_of_stream*/0);
+        }
+        // TODO: modify response headers here
 
         let received_body = res.consume().unwrap();
         let sent_body = response.body().unwrap();
@@ -143,7 +199,9 @@ impl Guest for Proxy {
         {
             let source = received_body.stream().unwrap();
             let destination = sent_body.write().unwrap();
-            stream_data(&source, &destination);
+            stream_data(
+                /*request=*/false, /*end_of_stream=*/false,
+                &source, &destination);
         }
 
         {
@@ -153,6 +211,10 @@ impl Guest for Proxy {
             if let Some(trailers) = future.get().unwrap().unwrap().unwrap() {
                 let trailers = trailers.clone();
                 // TODO: modufy response trailers here
+                unsafe {
+                    guest::proxy_on_response_trailers(
+                        2, trailers.entries().len() as u32);
+                }
                 OutgoingBody::finish(sent_body, Some(trailers)).unwrap();
             } else {
                 OutgoingBody::finish(sent_body, None).unwrap();
