@@ -5,10 +5,10 @@ use std::convert::{TryFrom, Into};
 pub mod c_types {
     pub type WasmResult = u32;
     pub type LogLevel = i32;
-    // Rust does not provide c_size_t type outside of experimental yet.
+    // Rust does not provide C size_t type outside of experimental yet.
     // Follow tracking issue https://github.com/rust-lang/rust/issues/88345.
-    pub type c_size_t = usize;
-    pub type c_char = std::ffi::c_char;
+    pub type CSize = usize;
+    pub type CChar = std::ffi::c_char;
 
     pub type FilterHeadersStatus = i32;
     pub type FilterDataStatus = i32;

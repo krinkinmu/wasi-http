@@ -15,6 +15,7 @@ rust_library(
         "types.rs",
         "host.rs",
         "guest.rs",
+        "alloc.rs",
     ],
     deps = [
         ":bindings",

@@ -1,5 +1,6 @@
 extern crate bindings;
 
+mod alloc;
 mod host;
 mod guest;
 mod types;

@@ -2,9 +2,10 @@
 // requests that a proxy-wasm guest module/plugin can make to the host.
 use bindings::wasi::cli::stdout::get_stdout;
 use bindings::wasi::cli::stderr::get_stderr;
-use crate::guest::malloc;
+use crate::alloc::allocate_in_guest;
 use crate::types::c_types;
 use crate::types::{LogLevel, WasmResult};
+
 
 // It looks like wasi-logging proposal exists in principle (see
 // https://github.com/WebAssembly/wasi-logging), so in principle in the future,
@@ -14,8 +15,8 @@ use crate::types::{LogLevel, WasmResult};
 // from the proxy world, legacy interfaces and non-WASI external functions.
 #[no_mangle]
 pub extern "C" fn proxy_log(level: c_types::LogLevel,
-             message: *const c_types::c_char,
-             message_size: c_types::c_size_t) -> c_types::WasmResult {
+             message: *const c_types::CChar,
+             message_size: c_types::CSize) -> c_types::WasmResult {
     let message = unsafe {
         std::slice::from_raw_parts(message as *const u8, message_size as usize)
     };
@@ -45,21 +46,20 @@ pub extern "C" fn proxy_get_log_level(level: *mut c_types::LogLevel) -> c_types:
 
 #[no_mangle]
 pub extern "C" fn proxy_get_property(
-        path: *const c_types::c_char, path_size: c_types::c_size_t,
-        result: *mut *const c_types::c_char, result_size: *mut c_types::c_size_t) -> c_types::WasmResult {
-    let root_id: &'static str = "";
-
+        path: *const c_types::CChar, path_size: c_types::CSize,
+        result: *mut *const c_types::CChar, result_size: *mut c_types::CSize) -> c_types::WasmResult {
     let key = std::str::from_utf8(unsafe {
         std::slice::from_raw_parts(path as *const u8, path_size as usize)
     }).unwrap();
     if key == "plugin_root_id" {
+        let root_id: &'static str = "";
+
         unsafe {
             let bytes = root_id.as_bytes();
-            let buf = malloc(bytes.len() as c_types::c_size_t);
-            assert!(buf != std::ptr::null_mut());
+            let buf = allocate_in_guest(bytes.len());
             std::ptr::copy_nonoverlapping(bytes.as_ptr(), buf, bytes.len());
             *result = buf as *const i8;
-            *result_size = bytes.len() as c_types::c_size_t;
+            *result_size = bytes.len() as c_types::CSize;
         };
         WasmResult::Ok.into()
     } else {
