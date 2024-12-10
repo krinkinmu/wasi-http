@@ -283,6 +283,7 @@ def _wasm_component_impl(ctx):
         arguments = [
             "component",
             "embed",
+            "-g",
             "--world",
             ctx.attr.world,
             "--output",
@@ -300,6 +301,7 @@ def _wasm_component_impl(ctx):
         arguments = [
             "component",
             "new",
+            "-g",
             "--adapt",
             ctx.file.adapter.path,
             "--output",
