@@ -44,50 +44,50 @@ public:
   explicit ExampleContext(uint32_t id, RootContext *root) : Context(id, root) {}
 
   void onCreate() override {
-    logDebug("Context::onCreate");
+    logDebug("Context::onCreate()");
   }
 
   void onDone() override {
-    logDebug("Context::onDone");
+    logDebug("Context::onDone()");
   }
 
   FilterMetadataStatus onRequestMetadata(uint32_t) override {
-    logDebug("Context::onRequestMetadata");
+    logDebug("Context::onRequestMetadata()");
     return FilterMetadataStatus::Continue;
   }
 
   FilterHeadersStatus onRequestHeaders(uint32_t, bool) override {
-    logDebug("Context::onRequestHeaders");
+    logDebug("Context::onRequestHeaders()");
     return FilterHeadersStatus::Continue;
   }
 
   FilterDataStatus onRequestBody(size_t, bool) override {
-    logDebug("Context::onRequestBody");
+    logDebug("Context::onRequestBody()");
     return FilterDataStatus::Continue;
   }
 
   FilterTrailersStatus onRequestTrailers(uint32_t) override {
-    logDebug("Context::onRequestTrailers");
+    logDebug("Context::onRequestTrailers()");
     return FilterTrailersStatus::Continue;
   }
 
   FilterMetadataStatus onResponseMetadata(uint32_t) override {
-    logDebug("Context::onResponseMetadata");
+    logDebug("Context::onResponseMetadata()");
     return FilterMetadataStatus::Continue;
   }
 
   FilterHeadersStatus onResponseHeaders(uint32_t, bool) override {
-    logDebug("Context::onResponseHeaders");
+    logDebug("Context::onResponseHeaders()");
     return FilterHeadersStatus::Continue;
   }
 
   FilterDataStatus onResponseBody(size_t, bool) override {
-    logDebug("Context::onResponseBody");
+    logDebug("Context::onResponseBody()");
     return FilterDataStatus::Continue;
   }
 
   FilterTrailersStatus onResponseTrailers(uint32_t) override {
-    logDebug("Context::onResponseTrailers");
+    logDebug("Context::onResponseTrailers()");
     return FilterTrailersStatus::Continue;
   }
 };

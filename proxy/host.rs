@@ -2,6 +2,7 @@
 // requests that a proxy-wasm guest module/plugin can make to the host.
 use bindings::wasi::cli::stdout::get_stdout;
 use bindings::wasi::cli::stderr::get_stderr;
+use crate::guest::malloc;
 use crate::types::c_types;
 use crate::types::{LogLevel, WasmResult};
 
@@ -22,11 +23,13 @@ pub extern "C" fn proxy_log(level: c_types::LogLevel,
     Ok(LogLevel::Trace) | Ok(LogLevel::Debug) | Ok(LogLevel::Info) => {
         let stdout = get_stdout();
         stdout.blocking_write_and_flush(message).unwrap();
+        stdout.blocking_write_and_flush("\n".as_bytes()).unwrap();
     },
     Ok(LogLevel::Warn) | Ok(LogLevel::Err) | Ok(LogLevel::Critical) => {
         let stderr = get_stderr();
         stderr.blocking_write_and_flush(message).unwrap();
-    }
+        stderr.blocking_write_and_flush("\n".as_bytes()).unwrap();
+    },
     _ => return WasmResult::BadArgument.into(),
     };
     WasmResult::Ok.into()
@@ -52,7 +55,10 @@ pub extern "C" fn proxy_get_property(
     if key == "plugin_root_id" {
         unsafe {
             let bytes = root_id.as_bytes();
-            *result = bytes.as_ptr() as *const c_types::c_char;
+            let buf = malloc(bytes.len() as c_types::c_size_t);
+            assert!(buf != std::ptr::null_mut());
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), buf, bytes.len());
+            *result = buf as *const i8;
             *result_size = bytes.len() as c_types::c_size_t;
         };
         WasmResult::Ok.into()
